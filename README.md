@@ -1,7 +1,7 @@
 Collide
 =======
 
-Simple collision detection.
+Simple collision detection. Not guaranteed to follow the laws of physics _at this time_.
 
 ```haskell
 collide :: Collide a b => a -> b -> Bool
