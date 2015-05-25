@@ -3,8 +3,11 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MonadComprehensions #-}
 
+{-|
+Collision detection typeclass and geometric types instances.
+-}
 module Collide (
--- * Collide type class
+-- * Collide typeclass
   Collide(..)
 -- * Sphere
 , Sphere(..)
