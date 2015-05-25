@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE MonadComprehensions #-}
 
 module Collide where
 
@@ -19,7 +20,8 @@ class Collide a b where
 --
 -- >>> collider :: Sphere V3 Double
 -- >>> collider = Sphere (V3 0 0 5) 1
-data Sphere v a = Sphere (v a) a deriving (Functor)
+data Sphere v a = Sphere (v a) a
+                deriving (Functor, Show, Eq)
 
 -- | Access the center point of the sphere. Possibly changing its vector type,
 -- but not the component type.
@@ -33,23 +35,41 @@ radius = lens (\(Sphere _ r) -> r) (\(Sphere p _) r' -> Sphere p r')
 instance (Metric v, Floating a, Ord a) => Collide (Sphere v a) (Sphere v a) where
     collide (Sphere p1 r1) (Sphere p2 r2) = distance p1 p2 > r1 + r2
 
--- | A convex hull can be any "Foldable" structure of vertices.
+-- | A convex hull consists of two structures. One of vertices, one of face
+-- normals.
 --
 -- >>> collider :: ConvexHull [] V3 Double
--- >>> collider = ConvexHull [V3 0 0 0, V3 0 1 0, V3 1 0 0]
-newtype ConvexHull t v a = ConvexHull { _vertices :: (t (v a)) } deriving (Functor, Show)
+-- >>> collider = ConvexHull [V3 0 0 0, V3 0 1 0, V3 1 0 0] [V3 0 0 1]
+data ConvexHull t v a = ConvexHull { _vertices :: (t (v a))
+                                   , _normals :: (t (v a))
+                                   } deriving (Functor, Show, Eq)
 
 -- | Access the underlying "Foldable" structure, possibly changing its type.
 --
 -- >>> let collider = ConvexHull [V2 1 2]
 -- >>> collider & vertices . mapped %~ (+ V2 3 1)
 -- ConvexHull {_vertices = [V2 4 3]}
-vertices :: Lens (ConvexHull t1 v1 a1) (ConvexHull t2 v2 a2) (t1 (v1 a1)) (t2 (v2 a2))
+vertices :: Lens (ConvexHull t v a) (ConvexHull t v a) (t (v a)) (t (v a))
 vertices = lens _vertices (\ch vs -> ch { _vertices = vs })
 
+-- | Access the underlying "Foldable" structure, possibly changing its type.
+normals :: Lens (ConvexHull t v a) (ConvexHull t v a) (t (v a)) (t (v a))
+normals = lens _normals (\ch vs -> ch { _normals = vs })
+
 instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (Sphere v a) where
-    collide (ConvexHull vas) (Sphere p r) =
-        getAny $ foldMap (Any . (< r) . distance p) vas
+    collide ch (Sphere p r) =
+        getAny $ foldMap (Any . (< r) . distance p) $ _vertices ch
 
 instance (Foldable t, Metric v, Floating a, Ord a) => Collide (Sphere v a) (ConvexHull t v a) where
     collide = flip collide
+
+--instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (ConvexHull t v a) where
+--    collide (ConvexHull a) (ConvexHull b) = 
+
+collideCH (ConvexHull avs ans) (ConvexHull bvs bns) = getAll $ foldMap undefined ans <> foldMap undefined ans
+
+projectVS :: (Functor t, Metric v, Floating a) => t (v a) -> v a -> t a
+projectVS vs n = fmap (norm . flip project n) vs
+
+overlapping :: (Foldable t, Ord a) => t a -> t a -> Bool
+overlapping as bs = maximum as < minimum bs || maximum bs < minimum bs
