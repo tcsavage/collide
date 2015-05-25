@@ -3,12 +3,24 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MonadComprehensions #-}
 
-module Collide where
+module Collide (
+-- * Collide type class
+  Collide(..)
+-- * Sphere
+, Sphere(..)
+, center
+, radius
+-- * Convex hull
+, ConvexHull(..)
+, vertices
+, normals
+) where
 
 import Control.Lens
 import Data.Foldable
 import Data.Monoid
 import Linear
+import Prelude hiding (minimum, maximum, sum)
 
 -- | Defines a binary relation on collidable objects. Expected to be symmetric
 -- but not /necessarily/ reflexive.
@@ -54,7 +66,7 @@ vertices = lens _vertices (\ch vs -> ch { _vertices = vs })
 
 -- | Access the underlying "Foldable" structure, possibly changing its type.
 normals :: Lens (ConvexHull t v a) (ConvexHull t v a) (t (v a)) (t (v a))
-normals = lens _normals (\ch vs -> ch { _normals = vs })
+normals = lens _normals (\ch ns -> ch { _normals = ns })
 
 instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (Sphere v a) where
     collide ch (Sphere p r) =
@@ -63,13 +75,13 @@ instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a)
 instance (Foldable t, Metric v, Floating a, Ord a) => Collide (Sphere v a) (ConvexHull t v a) where
     collide = flip collide
 
---instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (ConvexHull t v a) where
---    collide (ConvexHull a) (ConvexHull b) = 
+instance (Functor t, Foldable t, Foldable v, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (ConvexHull t v a) where
+    collide (ConvexHull avs ans) (ConvexHull bvs bns) = getAll $ foldMap go ans <> foldMap go bns
+        where
+            go n = projectVS avs n `overlapping` projectVS bvs n
 
-collideCH (ConvexHull avs ans) (ConvexHull bvs bns) = getAll $ foldMap undefined ans <> foldMap undefined ans
+projectVS :: (Functor t, Foldable v, Metric v, Floating a) => t (v a) -> v a -> t a
+projectVS vs n = fmap (sum . project n) vs
 
-projectVS :: (Functor t, Metric v, Floating a) => t (v a) -> v a -> t a
-projectVS vs n = fmap (norm . flip project n) vs
-
-overlapping :: (Foldable t, Ord a) => t a -> t a -> Bool
-overlapping as bs = maximum as < minimum bs || maximum bs < minimum bs
+overlapping :: (Foldable t, Ord a) => t a -> t a -> All
+overlapping as bs = All (maximum as < minimum bs || maximum bs < minimum bs)
