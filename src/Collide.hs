@@ -2,13 +2,17 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MonadComprehensions #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 {-|
 Collision detection typeclass and geometric types instances.
 -}
 module Collide (
--- * Collide typeclass
+-- * Collide typeclasses
   Collide(..)
+, defaultCollide
+, CollideInfo(..)
+, defaultCollideInfo
 -- * Sphere
 , Sphere(..)
 , center
@@ -24,7 +28,9 @@ module Collide (
 ) where
 
 import Control.Lens
+import Control.Monad
 import Data.Foldable
+import Data.Maybe
 import Data.Monoid
 import Linear
 
@@ -35,6 +41,18 @@ import Collide.Internal
 class Collide a b where
     -- | Are the two objects colliding?
     collide :: a -> b -> Bool
+
+-- | Some types may be able to provide additional information regarding the
+-- collision.
+class Collide a b => CollideInfo a b c | a b -> c where
+    -- | Detects collision, maybe returning collision data.
+    collideInfo :: a -> b -> Maybe c
+
+defaultCollide :: CollideInfo a b c => a -> b -> Bool
+defaultCollide a = isJust . collideInfo a
+
+defaultCollideInfo :: Collide a b => a -> b -> Maybe ()
+defaultCollideInfo a = guard . collide a
 
 -- | Sphere collider. Defined by a center and a radius.
 --
@@ -52,8 +70,13 @@ center = lens (\(Sphere p _) -> p) (\(Sphere _ r) p' -> Sphere p' r)
 radius :: Lens (Sphere v a) (Sphere v a) a a
 radius = lens (\(Sphere _ r) -> r) (\(Sphere p _) r' -> Sphere p r')
 
+instance (Metric v, Floating a, Ord a) => CollideInfo (Sphere v a) (Sphere v a) a where
+    collideInfo (Sphere p1 r1) (Sphere p2 r2)
+        = let x = distance p1 p2 - (r1 + r2)
+          in guard (x <= 0) >> Just x
+
 instance (Metric v, Floating a, Ord a) => Collide (Sphere v a) (Sphere v a) where
-    collide (Sphere p1 r1) (Sphere p2 r2) = distance p1 p2 < r1 + r2
+    collide = defaultCollide
 
 -- | A convex hull consists of two structures. One of vertices, one of normals.
 --
