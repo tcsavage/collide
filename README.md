@@ -10,7 +10,7 @@ collide :: Collide a b => a -> b -> Bool
 Matrix of doom
 --------------
 
-|                 | **Sphere** | **Convex hull**  |
-| --------------- | ---------- | ---------------- |
-| **Sphere**      | **✓**      | **✓**            |
-| **Convex hull** | **✓**      | _In development_ |
+|                 | **Sphere** | **Convex hull** |
+| --------------- | ---------- | --------------- |
+| **Sphere**      | **✓**      | **✓**           |
+| **Convex hull** | **✓**      | **✓**           |
