@@ -17,6 +17,10 @@ module Collide (
 , ConvexHull(..)
 , vertices
 , normals
+-- * Axis-aligned bounding box
+, AABB(..)
+, minPoint
+, maxPoint
 ) where
 
 import Control.Lens
@@ -55,8 +59,8 @@ instance (Metric v, Floating a, Ord a) => Collide (Sphere v a) (Sphere v a) wher
 --
 -- >>> collider :: ConvexHull [] V3 Double
 -- >>> collider = ConvexHull [V3 0 0 0, V3 0 1 0, V3 1 0 0] [V3 0 0 1]
-data ConvexHull t v a = ConvexHull { _vertices :: (t (v a))
-                                   , _normals :: (t (v a))
+data ConvexHull t v a = ConvexHull { _vertices :: t (v a)
+                                   , _normals :: t (v a)
                                    } deriving (Functor, Show, Eq)
 
 -- | Access the underlying structure of vertices.
@@ -82,3 +86,18 @@ instance (Functor t, Foldable t, Foldable v, Metric v, Floating a, Ord a) => Col
     collide (ConvexHull avs ans) (ConvexHull bvs bns) = getAll $ foldMap go ans <> foldMap go bns
         where
             go n = projectVS avs n `overlapping` projectVS bvs n
+
+data AABB v a = AABB { _minPoint :: v a
+                     , _maxPoint :: v a
+                     } deriving (Functor, Show, Eq)
+
+minPoint :: Lens (AABB v a) (AABB v a) (v a) (v a)
+minPoint = lens _minPoint (\a p -> a { _minPoint = p })
+
+maxPoint :: Lens (AABB v a) (AABB v a) (v a) (v a)
+maxPoint = lens _maxPoint (\a p -> a { _maxPoint = p })
+
+instance (Traversable v, Metric v, Floating a, Ord a) => Collide (AABB v a) (AABB v a) where
+    collide a b = getAll $ foldMap go $ basisFor $ view minPoint a
+        where
+            go n = projectVS [view minPoint a, view maxPoint a] n `overlapping` projectVS [view minPoint b, view maxPoint b] n

@@ -45,6 +45,20 @@ spec = do
             collide ch1 ch2 `shouldBe` False
         it "test collsion" $
             collide ch1 ch3 `shouldBe` True
+    describe "AABB-AABB collision" $ do
+        it "collision" $
+            collide aabb2D1 aabb2D2 `shouldBe` True
+        it "non-collision" $
+            collide aabb2D1 aabb2D3 `shouldBe` False
+
+aabb2D1 :: AABB V2 Double
+aabb2D1 = AABB (V2 0 0) (V2 1 1)
+
+aabb2D2 :: AABB V2 Double
+aabb2D2 = AABB (V2 (-1) 0.5) (V2 0.1 2)
+
+aabb2D3 :: AABB V2 Double
+aabb2D3 = AABB (V2 (-1) 0.5) (V2 (-0.5) 2)
 
 s1 :: Sphere V3 Double
 s1 = Sphere (V3 3 3 3) 1
