@@ -73,6 +73,7 @@ center = lens (\(Sphere p _) -> p) (\(Sphere _ r) p' -> Sphere p' r)
 radius :: Lens (Sphere v a) (Sphere v a) a a
 radius = lens (\(Sphere _ r) -> r) (\(Sphere p _) r' -> Sphere p r')
 
+-- | Produces the overlapping distance
 instance (Metric v, Floating a, Ord a) => CollideInfo (Sphere v a) (Sphere v a) a where
     collideInfo (Sphere p1 r1) (Sphere p2 r2)
         = let x = distance p1 p2 - (r1 + r2)
