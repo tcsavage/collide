@@ -10,9 +10,13 @@ collide :: Collide a b => a -> b -> Bool
 Matrix of doom
 --------------
 
-|                 | **Ray** | **Sphere** | **AABB** | **Convex hull** |
+| _Collide_       | **Ray** | **Sphere** | **AABB** | **Convex hull** |
 | --------------- | ------- | ---------- | -------- | --------------- |
 | **Ray**         |         |            |          |                 |
 | **Sphere**      |         | **✓**      |          | **✓**           |
 | **AABB**        |         |            | **✓**    |                 |
 | **Convex hull** |         | **✓**      |          | **✓**           |
+
+| _CollideInfo_   | **Sphere**       |
+| --------------- | ---------------- |
+| **Sphere**      | Overlap distance |
