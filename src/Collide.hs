@@ -48,9 +48,12 @@ class Collide a b => CollideInfo a b c | a b -> c where
     -- | Detects collision, maybe returning collision data.
     collideInfo :: a -> b -> Maybe c
 
+-- | Helper for defining "Collide" instances for types implementing "CollideInfo".
 defaultCollide :: CollideInfo a b c => a -> b -> Bool
 defaultCollide a = isJust . collideInfo a
 
+-- | Helper for defining "CollideInfo" instances for types only implementing
+-- "Collide". Produces unit.
 defaultCollideInfo :: Collide a b => a -> b -> Maybe ()
 defaultCollideInfo a = guard . collide a
 
