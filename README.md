@@ -1,6 +1,8 @@
 Collide
 =======
 
+[![Build Status](https://travis-ci.org/tcsavage/collide.svg?branch=master)](https://travis-ci.org/tcsavage/collide)
+
 Simple collision detection. Not guaranteed to follow the laws of physics _at this time_.
 
 ```haskell
