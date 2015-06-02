@@ -12,3 +12,13 @@ projectVS vs n = fmap (sum . project n) vs
 -- | Do the given sets of points overlap?
 overlapping :: (Foldable t, Ord a) => t a -> t a -> All
 overlapping as bs = All $ not (maximum as < minimum bs || maximum bs < minimum as)
+
+positionAtTime :: (Num (v a), Num a, Functor v) => v a -> v a -> a -> v a
+positionAtTime origin direction t = origin + (direction ^* t)
+
+roots :: (Ord a, Floating a) => a -> a -> a -> [a]
+roots a b c
+  | discriminant < 0 = []
+  | otherwise = [0.5 * (-b + sqrt discriminant), 0.5 * (-b - sqrt discriminant)]
+  where
+    discriminant = b^^2 - 4*a*c

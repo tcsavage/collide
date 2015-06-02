@@ -19,6 +19,15 @@ instance (Arbitrary (v a), Arbitrary a) => Arbitrary (Sphere v a) where
 instance (Arbitrary (v a), Arbitrary a) => Arbitrary (ConvexHull [] v a) where
     arbitrary = ConvexHull <$> fmap getNonEmpty arbitrary <*> fmap getNonEmpty arbitrary
 
+instance (Eq (v a), Applicative v, Ord a, Arbitrary (v a)) => Arbitrary (AABB v a) where
+    arbitrary = do
+        minV <- arbitrary
+        maxV <- arbitrary `suchThat` (\a -> (max <$> minV <*> a) == a)
+        return $ AABB minV maxV
+
+instance (Arbitrary (v a)) => Arbitrary (Ray v a) where
+    arbitrary = Ray <$> arbitrary <*> arbitrary
+
 spec :: Spec
 spec = do
     describe "sphere-sphere collision" $ do
@@ -46,10 +55,31 @@ spec = do
         it "test collsion" $
             collide ch1 ch3 `shouldBe` True
     describe "AABB-AABB collision" $ do
+        it "symmetric" $
+            property $ \(ch1 :: AABB V3 Double) (ch2 :: AABB V3 Double) ->
+                collide ch1 ch2 == collide ch2 ch1
         it "collision" $
             collide aabb2D1 aabb2D2 `shouldBe` True
         it "non-collision" $
             collide aabb2D1 aabb2D3 `shouldBe` False
+    describe "Ray-AABB collision" $ do
+        it "symmetric" $
+            property $ \(r :: Ray V3 Double) (b :: AABB V3 Double) ->
+                collide r b == collide b r
+        it "collision" $
+            collide aabb2D1 ray2D2 `shouldBe` True
+        it "non-collision" $
+            collide aabb2D1 ray2D1 `shouldBe` False
+    describe "Ray-Sphere collision" $ do
+        it "symmetric" $
+            property $ \(r :: Ray V3 Double) (s :: Sphere V3 Double) ->
+                collide r s == collide s r
+
+ray2D1 :: Ray V2 Double
+ray2D1 = Ray (V2 (-1) (-1)) $ normalize (V2 0.5 1.5)
+
+ray2D2 :: Ray V2 Double
+ray2D2 = Ray (V2 (-1) (-1)) $ normalize (V2 1 1)
 
 aabb2D1 :: AABB V2 Double
 aabb2D1 = AABB (V2 0 0) (V2 1 1)

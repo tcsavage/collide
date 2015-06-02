@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MonadComprehensions #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -25,14 +26,20 @@ module Collide (
 , AABB(..)
 , minPoint
 , maxPoint
+-- * Ray
+, Ray(..)
+, origin
+, direction
 ) where
 
+import Control.Applicative
 import Control.Lens
 import Control.Monad
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
 import Linear
+import Prelude hiding (foldr1)
 
 import Collide.Internal
 
@@ -128,3 +135,53 @@ instance (Traversable v, Metric v, Floating a, Ord a) => Collide (AABB v a) (AAB
     collide a b = getAll $ foldMap go $ basisFor $ view minPoint a
         where
             go n = projectVS [view minPoint a, view maxPoint a] n `overlapping` projectVS [view minPoint b, view maxPoint b] n
+
+data Ray v a = Ray { _origin    :: v a
+                   , _direction :: v a
+                   } deriving (Functor, Show, Eq)
+
+origin :: Lens (Ray v a) (Ray v a) (v a) (v a)
+origin = lens _origin (\r o -> r { _origin = o })
+
+direction :: Lens (Ray v a) (Ray v a) (v a) (v a)
+direction = lens _direction (\r o -> r { _direction = o })
+
+instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => CollideInfo (Ray v a) (AABB v a) a where
+    collideInfo (Ray o d) (AABB lb rt)
+        = let dirFrac = recip d
+              a = (lb - o) * dirFrac
+              b = (rt - o) * dirFrac
+              tmin = foldr1 max (min <$> a <*> b)
+              tmax = foldr1 min (max <$> a <*> b)
+              in if tmax < 0 || tmax < tmin then Nothing else Just tmin
+
+instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => CollideInfo (AABB v a) (Ray v a) a where
+    collideInfo = flip collideInfo
+
+instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => Collide (Ray v a) (AABB v a) where
+    collide = defaultCollide
+
+instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => Collide (AABB v a) (Ray v a) where
+    collide = flip collide
+
+instance (Num (v a), Metric v, Functor v, Floating a, Num a, Epsilon a, Ord a) => CollideInfo (Ray v a) (Sphere v a) (a, v a, v a) where
+    collideInfo (Ray origin direction) (Sphere center radius)
+        = let a = norm direction ^^ 2
+              b = 2 * (direction `dot` (origin - center))
+              c = norm (origin - center) ^^ 2 - radius ^^ 2
+              times = filter (not . nearZero) (roots a b c)  -- Intersection positions along the ray
+              in case times of
+                [] -> Nothing
+                ts -> let t = Prelude.minimum ts
+                          pos = positionAtTime origin direction t
+                          normal = signorm (pos - center)
+                          in Just (t, pos, normal)
+
+instance (Num (v a), Metric v, Functor v, Floating a, Num a, Epsilon a, Ord a) => CollideInfo (Sphere v a) (Ray v a) (a, v a, v a) where
+    collideInfo = flip collideInfo
+
+instance (Num (v a), Metric v, Functor v, Floating a, Num a, Epsilon a, Ord a) => Collide (Ray v a) (Sphere v a) where
+    collide = defaultCollide
+
+instance (Num (v a), Metric v, Functor v, Floating a, Num a, Epsilon a, Ord a) => Collide (Sphere v a) (Ray v a) where
+    collide = flip collide

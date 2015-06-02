@@ -14,11 +14,12 @@ Matrix of doom
 
 | _Collide_       | **Ray** | **Sphere** | **AABB** | **Convex hull** |
 | --------------- | ------- | ---------- | -------- | --------------- |
-| **Ray**         |         |            |          |                 |
-| **Sphere**      |         | **✓**      |          | **✓**           |
-| **AABB**        |         |            | **✓**    |                 |
+| **Ray**         |         | **✓**      | **✓**    |                 |
+| **Sphere**      | **✓**   | **✓**      |          | **✓**           |
+| **AABB**        | **✓**   |            | **✓**    |                 |
 | **Convex hull** |         | **✓**      |          | **✓**           |
 
-| _CollideInfo_   | **Sphere**       |
-| --------------- | ---------------- |
-| **Sphere**      | Overlap distance |
+| _CollideInfo_   | **Ray**               | **Sphere**            |
+| --------------- | --------------------- | --------------------- |
+| **Ray**         |                       | (t, position, normal) |
+| **Sphere**      | (t, position, normal) | Overlap distance      |
