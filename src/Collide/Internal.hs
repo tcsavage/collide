@@ -21,4 +21,4 @@ roots a b c
   | discriminant < 0 = []
   | otherwise = [0.5 * (-b + sqrt discriminant), 0.5 * (-b - sqrt discriminant)]
   where
-    discriminant = b^^2 - 4*a*c
+    discriminant = b^^(2::Int) - 4*a*c
