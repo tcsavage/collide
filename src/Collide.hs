@@ -31,7 +31,7 @@ import Data.Foldable
 import Data.Maybe
 import Data.Monoid
 import Linear
-import Prelude hiding (minimum, maximum)
+import Prelude hiding (minimum, maximum, sum)
 import qualified Prelude
 
 import Collide.Internal
@@ -85,11 +85,12 @@ data ConvexHull t v a = ConvexHull { vertices :: t (v a)
                                    , normals :: t (v a)
                                    } deriving (Functor, Show, Eq)
 
-instance (Foldable t, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (Sphere v a) where
-    collide ch (Sphere p r) =
-        getAny $ foldMap (Any . (< r) . distance p) $ vertices ch
+instance (Functor t, Foldable t, Foldable v, Metric v, Num (v a), Floating a, Num a, Ord a) => Collide (ConvexHull t v a) (Sphere v a) where
+    collide (ConvexHull vs ns) (Sphere c r) = getAll $ foldMap go ns
+        where
+            go n = projectVS vs n `overlapping` [sum (project n c + n ^* r), sum (project n c - n ^* r)]
 
-instance (Foldable t, Metric v, Floating a, Ord a) => Collide (Sphere v a) (ConvexHull t v a) where
+instance (Functor t, Foldable t, Foldable v, Metric v, Num (v a), Floating a, Num a, Ord a) => Collide (Sphere v a) (ConvexHull t v a) where
     collide = flip collide
 
 instance (Functor t, Foldable t, Foldable v, Metric v, Floating a, Ord a) => Collide (ConvexHull t v a) (ConvexHull t v a) where
@@ -110,6 +111,7 @@ data Ray v a = Ray { origin    :: v a
                    , direction :: v a
                    } deriving (Functor, Show, Eq)
 
+-- | Produces distance to intersection
 instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => CollideInfo (Ray v a) (AABB v a) a where
     collideInfo (Ray o d) (AABB lb rt)
         = let dirFrac = recip d
@@ -128,6 +130,7 @@ instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) 
 instance (Num (v a), Fractional (v a), Applicative v, Foldable v, Ord a, Num a) => Collide (AABB v a) (Ray v a) where
     collide = flip collide
 
+-- | Produces triple of (distance to intersection, point of intersection, surface normal)
 instance (Num (v a), Metric v, Functor v, Floating a, Num a, Epsilon a, Ord a) => CollideInfo (Ray v a) (Sphere v a) (a, v a, v a) where
     collideInfo (Ray ori dir) (Sphere cen rad)
         = let a = norm dir ^^ (2::Int)

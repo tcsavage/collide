@@ -10,7 +10,7 @@ projectVS :: (Functor t, Foldable v, Metric v, Floating a) => t (v a) -> v a -> 
 projectVS vs n = fmap (sum . project n) vs
 
 -- | Do the given sets of points overlap?
-overlapping :: (Foldable t, Ord a) => t a -> t a -> All
+overlapping :: (Foldable t1, Foldable t2, Ord a) => t1 a -> t2 a -> All
 overlapping as bs = All $ not (maximum as < minimum bs || maximum bs < minimum as)
 
 positionAtTime :: (Num (v a), Num a, Functor v) => v a -> v a -> a -> v a
